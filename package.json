@@ -1,0 +1,38 @@
+{
+  "name": "deepseek-harness-study",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness (dsh) architecture, plugin system, and agent runtime learning project",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "web": "tsx src/web-entry.ts",
+    "superagent": "tsx examples/04_router_worker_task.ts",
+    "example:basic": "tsx examples/01_basic_agent.ts",
+    "example:plugin": "tsx examples/02_custom_plugin.ts",
+    "example:replay": "tsx examples/03_session_replay.ts",
+    "example:router-worker": "tsx examples/04_router_worker_task.ts"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "agent-runtime",
+    "cordis",
+    "super-agent",
+    "react-loop"
+  ],
+  "author": "DeepSeek Harness Learner",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}
+
