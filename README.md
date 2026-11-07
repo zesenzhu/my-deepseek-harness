@@ -187,3 +187,19 @@ ctx.get('policies').use({ name: 'sandbox/path-jail', check: (call) => ({ decisio
 
 `.env` 现在已被 `.gitignore` 忽略，并从 git 索引中移除。
 **如果你之前已经把含真实 Key 的提交推送到过远端，请立刻去服务商轮换该 Key。**
+
+---
+
+## 许可
+
+本仓库包含**两种许可**的内容，别混用：
+
+| 范围 | 许可 |
+|---|---|
+| 本项目自身的代码与文档（`src/`、`examples/`、`tests/`、`scripts/`、`docs/` 等） | **MIT** |
+| `fixtures/real-dsh/` 下的 3 个官方配置副本 | **BSD 3-Clause**（`Copyright (c) 2026, DeepSeek`） |
+
+完整许可文本（含 BSD 全文、第三方说明与商标声明）见仓库根的 [LICENSE](LICENSE)。
+
+> 本项目是独立的第三方学习项目，与 DeepSeek AI 无隶属、无赞助、无背书关系。
+> "DeepSeek"、"DeepSeek Harness"、"dsh"、"Cordis" 等名称归其各自权利人所有。
