@@ -12,7 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true
   },
-  "include": ["src/**/*", "examples/**/*"],
+  "include": ["src/**/*", "examples/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }
 

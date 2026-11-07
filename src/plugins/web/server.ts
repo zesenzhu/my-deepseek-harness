@@ -2,6 +2,8 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveConfig } from '../../core/config.js';
+import { isInside } from '../guardrails/sandbox-guard.js';
 import { Context, Plugin, SessionStore, TrajectoryEvent } from '../../core/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,8 +18,16 @@ export interface WebServerOptions {
  * Web 可视化仪表盘与 SSE 实时推流插件 (WebServerPlugin)
  */
 export const WebServerPlugin: Plugin<WebServerOptions> = (ctx: Context, options) => {
-  const port = options?.port || 3000;
-  const workspaceRoot = path.resolve(options?.workspaceDir || './workspace');
+  const cfg = resolveConfig<WebServerOptions>(
+    'WebServerPlugin',
+    {
+      port: { type: 'number', default: 3000, min: 1, max: 65535 },
+      workspaceDir: { type: 'string', default: './workspace' },
+    },
+    options as Record<string, any>,
+  );
+  const port = cfg.port!;
+  const workspaceRoot = path.resolve(cfg.workspaceDir!);
   const sseClients = new Set<http.ServerResponse>();
 
   // 1. 监听 Context 的所有核心事件，向所有已连接的 Web 客户端广播 SSE
@@ -83,7 +93,7 @@ export const WebServerPlugin: Plugin<WebServerOptions> = (ctx: Context, options)
 
           // 异步启动
           if (ctx.has('loop')) {
-            const loop = ctx.get('loop');
+            const loop = ctx.get('loop')!;
             // 后台执行，通过 SSE 实时推流
             loop.run(objective, { verbose: true }).catch((err: any) => {
               broadcastEvent('error', { message: err.message });
@@ -119,7 +129,8 @@ export const WebServerPlugin: Plugin<WebServerOptions> = (ctx: Context, options)
         return;
       }
       const absPath = path.resolve(workspaceRoot, filePath);
-      if (!absPath.startsWith(workspaceRoot) || !fs.existsSync(absPath)) {
+      // 用 path.relative 判定，避免 '/work' 前缀放行 '/workspace-evil' 的陷阱
+      if (!isInside(workspaceRoot, absPath) || !fs.existsSync(absPath)) {
         res.writeHead(404);
         res.end('File not found');
         return;

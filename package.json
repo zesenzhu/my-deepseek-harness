@@ -7,12 +7,20 @@
   "scripts": {
     "build": "tsc",
     "start": "tsx src/index.ts",
+    "test:api": "tsx examples/00_test_connection.ts",
     "web": "tsx src/web-entry.ts",
     "superagent": "tsx examples/04_router_worker_task.ts",
     "example:basic": "tsx examples/01_basic_agent.ts",
     "example:plugin": "tsx examples/02_custom_plugin.ts",
     "example:replay": "tsx examples/03_session_replay.ts",
-    "example:router-worker": "tsx examples/04_router_worker_task.ts"
+    "example:router-worker": "tsx examples/04_router_worker_task.ts",
+    "test": "tsx tests/run.ts",
+    "reset": "node scripts/reset-workspace.mjs",
+    "example:real": "tsx examples/05_real_workspace_agent.ts",
+    "typecheck": "tsc --noEmit",
+    "inspect": "node scripts/inspect-real-dsh.mjs",
+    "fetch:real": "node scripts/fetch-real-bundles.mjs",
+    "analyze": "node scripts/analyze-bundle-tree.mjs"
   },
   "keywords": [
     "deepseek",
@@ -35,4 +43,3 @@
     "typescript": "^5.3.3"
   }
 }
-

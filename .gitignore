@@ -1,0 +1,23 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.tsbuildinfo
+
+# 本地密钥配置（切勿提交！.env.example 才是模板）
+.env
+.env.local
+.env.*.local
+
+# 日志与运行时产物
+*.log
+run.log
+coverage/
+tmp/
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+
+# 临时目录（npm 缓存 / 解包产物），不要提交
+.tmp/

@@ -119,39 +119,10 @@ export function verifyToken(token, now = Date.now() / 1000) {
     },
   };
 
-  // 注册到 ToolRegistry
-  let registry: ToolRegistry;
-  if (!ctx.has('tools')) {
-    const toolMap = new Map<string, ToolDefinition>();
-    registry = {
-      register(t: ToolDefinition): Disposable {
-        toolMap.set(t.name, t);
-        return () => toolMap.delete(t.name);
-      },
-      get(name: string) {
-        return toolMap.get(name);
-      },
-      list() {
-        return Array.from(toolMap.values());
-      },
-      async execute(call, context) {
-        const tool = toolMap.get(call.name);
-        if (!tool) {
-          return {
-            success: false,
-            output: '',
-            error: `Tool '${call.name}' not found.`,
-          };
-        }
-        await context.emit('tool:before_call', call);
-        const result = await tool.execute(call.args, context);
-        await context.emit('tool:after_call', { call, result });
-        return result;
-      },
-    };
-    ctx.provide('tools', registry);
-  } else {
-    registry = ctx.get('tools');
+  // 注册到 Harness 提供的 ToolRegistry（registry 内部的 execute 会强制走策略裁决）
+  const registry = ctx.get('tools') as ToolRegistry;
+  if (!registry) {
+    throw new Error('[FileToolsPlugin] ToolRegistry must be provided by the harness first!');
   }
 
   const d1 = registry.register(readFileTool);

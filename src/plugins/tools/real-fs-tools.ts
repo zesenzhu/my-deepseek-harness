@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import { resolveConfig } from '../../core/config.js';
 import { Context, Disposable, Plugin, ToolDefinition, ToolRegistry } from '../../core/types.js';
 
 const execAsync = promisify(exec);
@@ -15,12 +16,17 @@ export interface RealFSToolsOptions {
  * 真实宿主机沙箱文件系统与 Shell 执行工具插件
  */
 export const RealFSToolsPlugin: Plugin<RealFSToolsOptions> = (ctx: Context, options) => {
-  if (!options?.workspaceDir) {
-    throw new Error('[RealFSToolsPlugin] workspaceDir is required');
-  }
+  const cfg = resolveConfig<RealFSToolsOptions>(
+    'RealFSToolsPlugin',
+    {
+      workspaceDir: { type: 'string', required: true },
+      defaultTimeoutMs: { type: 'number', default: 20000, min: 1000, max: 600000 },
+    },
+    options as Record<string, any>,
+  );
 
-  const workspaceRoot = path.resolve(options.workspaceDir);
-  const timeoutMs = options.defaultTimeoutMs || 20000;
+  const workspaceRoot = path.resolve(cfg.workspaceDir);
+  const timeoutMs = cfg.defaultTimeoutMs!;
 
   // 保证 workspace 目录存在
   if (!fs.existsSync(workspaceRoot)) {
@@ -174,35 +180,10 @@ export const RealFSToolsPlugin: Plugin<RealFSToolsOptions> = (ctx: Context, opti
     },
   };
 
-  // 获取或初始化工具注册表
-  let registry: ToolRegistry;
-  if (!ctx.has('tools')) {
-    const toolMap = new Map<string, ToolDefinition>();
-    registry = {
-      register(t: ToolDefinition): Disposable {
-        toolMap.set(t.name, t);
-        return () => toolMap.delete(t.name);
-      },
-      get(name: string) {
-        return toolMap.get(name);
-      },
-      list() {
-        return Array.from(toolMap.values());
-      },
-      async execute(call, context) {
-        const tool = toolMap.get(call.name);
-        if (!tool) {
-          return { success: false, output: '', error: `Tool '${call.name}' not found.` };
-        }
-        await context.emit('tool:before_call', call);
-        const result = await tool.execute(call.args, context);
-        await context.emit('tool:after_call', { call, result });
-        return result;
-      },
-    };
-    ctx.provide('tools', registry);
-  } else {
-    registry = ctx.get('tools');
+  // 注册到 Harness 提供的 ToolRegistry（执行前会强制走 SandboxGuard 的策略裁决）
+  const registry = ctx.get('tools') as ToolRegistry;
+  if (!registry) {
+    throw new Error('[RealFSToolsPlugin] ToolRegistry must be provided by the harness first!');
   }
 
   const d1 = registry.register(realFileReadTool);

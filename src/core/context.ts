@@ -64,7 +64,11 @@ export class CoreContext implements Context {
   }
 
   /**
-   * 异步派发事件
+   * 异步派发事件（**仅通知语义**）。
+   *
+   * 注意：为了让一个出错的监听器不至于拖垮整条 Agent 链路，这里会吞掉异常并只打日志。
+   * 因此**安全拦截绝不能依赖在事件处理器里 throw**——那只会打印一行错误，工具照样执行。
+   * 需要"必须生效"的准入控制，请使用 PolicyEngine / ToolRegistry.use()（见 core/policy.ts）。
    */
   async emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): Promise<void> {
     const handlers = this.listeners.get(event as string);

@@ -1,22 +1,31 @@
 import { CoreContext } from './context.js';
+import { PolicyEngine, PolicyEngineOptions } from './policy.js';
+import { InMemoryToolRegistry } from './registry.js';
 import { MemorySessionStore } from './session.js';
 import { Context, Plugin, RunOptions, RunResult } from './types.js';
 
 export interface HarnessConfig {
   sessionId?: string;
+  /** 策略引擎配置：审批器、失败关闭行为、审计回调 */
+  policy?: PolicyEngineOptions;
 }
 
 /**
- * DeepSeek Harness (dsh) 主引导类
- * 负责装配上下文、加载插件树、发起任务
+ * DeepSeek Harness (dsh) 学习版主引导类
+ *
+ * 构造时注入三项基础设施（相当于真实 DSH 里 dsh-base bundle 的第一层）：
+ *   - session  事件溯源会话
+ *   - policies 工具准入策略引擎（allow / deny / ask）
+ *   - tools    工具注册表（执行时强制走策略裁决）
  */
 export class DeepSeekHarness {
   public readonly ctx: Context;
 
   constructor(config: HarnessConfig = {}) {
     this.ctx = new CoreContext();
-    // 注入默认的 SessionStore
     this.ctx.provide('session', new MemorySessionStore(config.sessionId));
+    this.ctx.provide('policies', new PolicyEngine(config.policy));
+    this.ctx.provide('tools', new InMemoryToolRegistry());
   }
 
   /**
@@ -33,11 +42,10 @@ export class DeepSeekHarness {
   async run(objective: string, options?: RunOptions): Promise<RunResult> {
     if (!this.ctx.has('loop')) {
       throw new Error(
-        `[Harness Error] No AgentLoop plugin installed! Please install ReActLoopPlugin or RouterWorkerLoopPlugin.`
+        `[Harness Error] No AgentLoop plugin installed! Please install ReActLoopPlugin or RouterWorkerLoopPlugin.`,
       );
     }
-    const loop = this.ctx.get('loop');
+    const loop = this.ctx.get('loop')!;
     return await loop.run(objective, options);
   }
 }
-
