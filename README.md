@@ -63,7 +63,7 @@ deepseek-harness-study/
 │   ├── 04_router_worker_task.ts  # Router-Worker 教学原型
 │   └── 05_real_workspace_agent.ts# ⭐ 真实磁盘 + 真实 `node test.js`：真红 → 真修复 → 真绿
 │
-├── fixtures/real-dsh/            # 官方组合包配置原件（MIT，可复现）
+├── fixtures/real-dsh/            # 官方组合包配置原件（BSD-3-Clause，可复现）
 ├── tests/run.ts                  # 15 个用例：策略语义 / 守卫回归 / 会话 / 熔断 / 端到端
 ├── scripts/
 │   ├── reset-workspace.mjs       # 把 demo 工作区复位到"含 Bug 基线"

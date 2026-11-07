@@ -198,6 +198,7 @@ skill / command / storage / host  3
 ## 附：数据来源与许可
 
 - 来源：npm `@deepseek-ai/dsh-base@0.0.1-rc.1`、`@deepseek-ai/dsh-web-app@0.0.1-rc.1` 包内的 `cordis.patch.yml`
-- 许可：MIT（版权归 DeepSeek AI），本仓库仅作学习用途的只读副本
+- 许可：**BSD 3-Clause**（`Copyright (c) 2026, DeepSeek`），本仓库仅作学习用途的只读副本，未作修改
+  - 完整许可文本与商标说明已收录到仓库根的 [LICENSE](../LICENSE) 第三方内容说明部分
 - 校验和见 [`fixtures/real-dsh/README.md`](../fixtures/real-dsh/README.md)
 - 这些是**发行版快照**，会随版本演进；权威数据永远是你本机安装的那份

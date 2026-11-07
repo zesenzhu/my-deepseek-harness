@@ -1,0 +1,101 @@
+MIT License
+
+Copyright (c) 2026 zesenzhu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+第三方内容说明 / Third-party notices
+================================================================================
+
+上面这份 MIT 许可适用于本仓库（deepseek-harness-study）自身的代码与文档。
+
+但本仓库收录了**第三方作品的原样副本**，它们适用各自的许可，不受上面 MIT 条款覆盖。
+以下说明用于满足相应许可的"保留版权声明与许可文本"义务。
+
+--------------------------------------------------------------------------------
+1. fixtures/real-dsh/ —— 来自 DeepSeek Harness 的官方组合包配置
+--------------------------------------------------------------------------------
+
+涉及文件：
+
+  fixtures/real-dsh/base.cordis.patch.yml
+  fixtures/real-dsh/base.windows.cordis.patch.yml
+  fixtures/real-dsh/web-app.cordis.patch.yml
+
+来源：npm 包 `@deepseek-ai/dsh-base@0.0.1-rc.1` 与 `@deepseek-ai/dsh-web-app@0.0.1-rc.1`
+中的同名文件，由 DeepSeek AI 发布。本仓库原样收录，**未作任何修改**，
+仅用于离线阅读与研究真实的 DSH 插件树结构。
+
+许可：**BSD 3-Clause License**（注意：不是 MIT）
+版权：Copyright (c) 2026, DeepSeek
+
+完整许可文本（随上述 npm 包分发的 LICENSE 原文）：
+
+  BSD 3-Clause License
+
+  Copyright (c) 2026, DeepSeek
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice, this
+     list of conditions and the following disclaimer.
+
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+  3. Neither the name of the copyright holder nor the names of its
+     contributors may be used to endorse or promote products derived from
+     this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+每个文件的 SHA-256 校验和与取回方式见 fixtures/real-dsh/README.md。
+
+--------------------------------------------------------------------------------
+2. 名称与商标
+--------------------------------------------------------------------------------
+
+本仓库是**独立的第三方学习项目**，与 DeepSeek AI 无隶属、无赞助、无背书关系。
+
+"DeepSeek"、"DeepSeek Harness"、"dsh"、"Cordis" 等名称与标识归其各自权利人所有，
+本仓库仅在描述性、说明性语境中引用，不构成商标使用许可。
+
+按上述 BSD 3-Clause 第 3 条：不得使用版权持有人或其贡献者的名义
+为基于该作品的产品背书或推广。
+
+官方项目地址：https://github.com/deepseek-ai/deepseek-harness
+
+--------------------------------------------------------------------------------
+3. 其他依赖
+--------------------------------------------------------------------------------
+
+本仓库的 npm 依赖（如 chalk、dotenv、tsx、typescript）适用各自许可，
+详见 node_modules 中对应包的 LICENSE 文件，不在本文件重复收录。

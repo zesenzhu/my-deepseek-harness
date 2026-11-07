@@ -1,7 +1,7 @@
 # fixtures/real-dsh —— 真实 DSH 组合包配置快照
 
 这里存放的是从 npm 上原样取回的 **真实组合包（bundle）配置文件**，用于离线分析真实插件树。
-它不是本项目写的配置，而是 DeepSeek 官方发行物的一部分（MIT License）。
+它不是本项目写的配置，而是 DeepSeek 官方发行物的一部分（**BSD 3-Clause License**）。
 
 ## 来源
 
@@ -38,4 +38,5 @@ d821d6c2f2d4bcd7660986bed413c1811af0eaf1aaae9f148f2f3ead14bbf603  base.windows.c
 
 ## 许可
 
-原文件版权归 DeepSeek AI，随包附带的 LICENSE 为 MIT。这里仅作学习用途的只读副本。
+原文件版权归 DeepSeek AI（`Copyright (c) 2026, DeepSeek`），随包附带的 LICENSE 为 **BSD 3-Clause**。
+这里仅作学习用途的只读副本，未作修改；完整的第三方许可文本已收录到仓库根的 [LICENSE](../LICENSE)。
