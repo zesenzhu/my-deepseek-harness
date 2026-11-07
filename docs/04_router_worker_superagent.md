@@ -1,4 +1,19 @@
-# 04. Super-Agent：Router-Worker 多智能体架构
+# 04. Router-Worker：多智能体协作的**教学原型**
+
+🟡 **本篇可信度：教学类比** —— Router-Worker 是本项目自建的教学拓扑，DSH 中没有这个名词与对应包。
+
+> 🚨 **重要勘误（必读）**
+>
+> 本文旧版声称 "DeepSeek 开源的 Super-Agent 原型 (`dsh-superagent-prototype`) 采用了 Router-Worker 拓扑"。
+> **这个包不存在，这个拓扑也不是 DSH 的官方设计。** 在真实发行版产物里：
+> - `router-worker` 命中 **0** 次
+> - `super-agent` 命中 **0** 次
+>
+> 真实的对应能力是：`dsh-subagent`（子 agent 委派）、`dsh-tool-subagent`（把子 agent 当工具）、
+> `dsh-workflow`（脚本化编排）、`dsh-experimental-agent-team`（团队协作，实验性）。
+>
+> 本篇保留，是因为"角色分工 + 反馈闭环"本身是很好的教学素材，但请把它当作**类比模型**，
+> 不要当成 DSH 的架构事实。真实架构见 [00_real_dsh_map.md](00_real_dsh_map.md)。
 
 ## 1. 为什么需要多智能体（Multi-Agent）？
 
@@ -8,7 +23,7 @@
   2. 角色混乱：同一个 Agent 既要负责宏观架构决策，又要细抠某个正则边界条件，极易顾此失彼；
   3. 无法并行：串行执行大大拉长任务交付时间。
 
-DeepSeek 开源的 **Super-Agent 原型 (`dsh-superagent-prototype`)** 采用了行业领先的 **Router-Worker** 拓扑范式。
+本项目用一个 **Router-Worker 拓扑的教学原型** 来演示这种分工（它**不是** DSH 的组件）。
 
 ---
 
@@ -70,7 +85,7 @@ DeepSeek 开源的 **Super-Agent 原型 (`dsh-superagent-prototype`)** 采用了
 
 ## 4. 协作协议（Protocol）
 
-各 Agent 之间通过轻量统一的 **JSON Task Contract** 进行通信：
+本教学原型里，各角色之间用一份 **JSON Task Contract** 传递指令（这也是本项目自定的约定，不是 DSH 的协议）：
 
 ```json
 {

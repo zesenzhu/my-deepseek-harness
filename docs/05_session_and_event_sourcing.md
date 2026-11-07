@@ -1,5 +1,15 @@
 # 05. 会话持久化与事件溯源（Event Sourcing）
 
+🟡 **本篇可信度：方向真实、模型简化** —— 事件溯源与仅追加日志是真实设计；但事件类型与 API 是本项目的简化模型。
+
+> ✅ 这一篇的**大方向与真实 DSH 一致**：会话是仅追加的日志，状态 = fold(events)。
+> 但下面的事件类型与 API 是本项目**教学简化的模型**，真实实现要复杂得多：
+> - 真实包：`dsh-session`（日志与内存存储）、`dsh-session-persistence-jsonl`（JSONL 落盘）、
+>   `dsh-session-projection`（投影）、`dsh-session-format`（格式版本 + `v0→v4` 迁移链）、
+>   `dsh-session-checkpoint-policy`、`dsh-session-query-sqlite`
+> - 真实事件是 `SessionEvent` + `known-event-types`，不是本篇这 6 种
+> - 真实路要做"请求头 / 追加校验 / 修复 / 序号区间"等一致性问题
+
 ## 1. 为什么采用事件溯源（Event Sourcing）？
 
 传统的应用通常保存“当前状态”（State Mutation），例如数据库只存 `status = "completed"`。但对自主智能体（Autonomous Agent）而言，如果只保存最终状态，我们将失去：
@@ -14,7 +24,7 @@
 
 ## 2. 事件生命周期数据模型（Event Schema）
 
-每一条进入 Session 的事件都是不可变对象（Immutable Record）：
+下面这套 schema 是**本项目的简化模型**，用来演示"不可变 + 可回放 + 可分叉"这三个性质：
 
 ```typescript
 export interface TrajectoryEvent {

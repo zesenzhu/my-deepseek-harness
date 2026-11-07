@@ -1,12 +1,19 @@
 # 06. DeepSeek Harness 全栈与 Super-Agent 架构深度研学与实战分析
 
-本文档专为深度研习 **DeepSeek Harness (dsh)** 底层原理与工程落地而编写。我们将对刚刚构建完成的全栈自主智能体系统进行系统性、全方位的解构与原理解析。
+🔴 **本篇可信度：讲的是本项目 demo** —— 本文解析本仓库自己的实现，与 DSH 无对应关系；真实架构请看 00 / 07。
+
+> ⚠️ **阅读前必看**：本文解析的是**本仓库自己实现的这个 demo**（约 1500 行），
+> 它借用了 DSH 的设计思想，但**不是** DSH 的架构说明。
+> 文中出现的 "SuperAgentLoopPlugin"、"Router-Worker 拓扑" 都是本项目的教学组件，
+> 真实 DSH 的对应包与差距见 [00_real_dsh_map.md](00_real_dsh_map.md)。
+
+本文档对本仓库构建的全栈自主智能体 demo 做系统解构。
 
 ---
 
 ## 1. 核心架构全景图 (System Architecture)
 
-在 DeepSeek Harness 的设计体系中，系统自下而上清晰划分为四大层次：
+在本教学实现中，系统自下而上划分为四大层次：
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -55,8 +62,12 @@
 ### 2.2 工作区沙箱 (Workspace Jail) 与命令防护
 在自主 Agent 赋予真实系统执行权限时，安全是头等大事。在 [`src/plugins/guardrails/sandbox-guard.ts`](../src/plugins/guardrails/sandbox-guard.ts) 中：
 1. **路径解析规整化**：
-   使用 `path.resolve(workspaceRoot, targetPath)`，并强制校验 `absolutePath.startsWith(workspaceRoot)`。
-   即使 Agent 生成了 `../../etc/passwd` 这种越权路径，也会在工具调用前被同步截获并抛出安全异常。
+   使用 `path.resolve(workspaceRoot, targetPath)`，再用 `path.relative` 判定是否仍在工作区内
+   （不要用 `startsWith`：`/work` 会放行 `/workspace-evil`），最后对"最近的已存在祖先"做 `realpath` 校验，防符号链接逃逸。
+   即使 Agent 生成了 `../../etc/passwd`，也会在工具调用前被**策略裁决**拦截并返回失败结果。
+
+   > ⚠️ 注意：拦截必须是裁决（verdict），不能是事件监听器里 `throw`。
+   > 早期版本就是 `throw`，而 `emit` 会吞异常，实测 `../escape-proof.txt` 能写到工作区外、`rm -rf /` 能真的进 shell。
 2. **Shell 命令双重过滤**：
    - 提取主进程名实施**白名单比对**（仅允许 `node`, `npm`, `git`, `python` 等）；
    - 正则检测破坏性指令（如 `rm -rf /`、Fork Bomb、直接重定向底层设备），确保开发者宿主机安全。
@@ -107,7 +118,9 @@ npm run web
 ## 4. 思考与进阶拓展
 
 1. **如何接入自己的真实 DeepSeek API？**
-   在 `.env` 文件中配置 `DEEPSEEK_API_KEY=sk-xxxx`，并将 `EXECUTION_MODE=live`，Harness 即可无缝切换为真实调用 DeepSeek-V3 或 DeepSeek-R1 推理模型。
+   在 `.env` 中配置 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL`、`DEEPSEEK_MODEL`，并设置 `EXECUTION_MODE=live`。
+   注意：示例 1~4 用的是**内存沙箱**（`file_read`/`bash_run` 在虚拟文件系统上工作），
+   换成真模型后它只能看到虚拟文件；想体验"真实磁盘 + 真实子进程"，用 `npm run example:real`。
 2. **如何增加一个新的 Worker 角色？**
    只需在 `src/plugins/loops/` 中定义新的角色契约，例如增加一个 `Reviewer Worker`（用于代码规范审计与安全扫描），通过 Context 的事件总线与 Router 建立通讯。
 

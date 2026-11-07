@@ -1,123 +1,189 @@
-# DeepSeek Harness (DSH) 学习与实战研习项目
+# DeepSeek Harness (dsh) 学习项目
 
-欢迎来到 **DeepSeek Harness (dsh)** 核心架构与实战学习项目！
+一个**约 1500 行**的教学实现，用来拆解 Agent Harness 的关键机制：微内核上下文、插件生命周期、
+工具准入策略、ReAct 循环、事件溯源会话、原生 SSE 推流。
 
-本项目针对 DeepSeek 官方开源的 Agent 运行环境与框架 **`deepseek-ai/deepseek-harness`** 进行深度解构与全真实现。无论你是想探究现代前沿 AI Agent Runtime 的底层原理，还是希望掌握自主智能体（Autonomous Coding Agent）的设计模式，本项目都为你提供了从“架构原理剖析”到“可执行源码实战”的一站式学习路径。
-
----
-
-## 🌟 核心理念：Everything is a Plugin
-
-DeepSeek Harness 最具革命性的设计在于：**一切皆插件（Everything is a Plugin）**。
-传统的 Agent 框架往往将执行循环（Execution Loop）、模型通信、记忆管理深度耦合在主引擎中；而在 DeepSeek Harness 中：
-- 🔌 **模型适配器是插件**（DeepSeek、OpenAI、Claude、本地模型均可即插即用）
-- 🔄 **智能体循环是插件**（ReAct 循环、Plan-and-Solve 循环、Router-Worker 循环均可热插拔）
-- 🛠️ **工具与技能是插件**（文件操作、终端沙箱、Git 控制、代码检索等动态挂载）
-- 📜 **会话与记忆是插件**（基于事件溯源 Event Sourcing 的 Trajectory 记录、回放与分支）
-- 🛡️ **安全与守卫是插件**（指令过滤、审批断点、权限隔离）
+> **定位先说清楚**
+>
+> 这不是 DSH 的源码镜像，也不是官方简化版。真实的
+> [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 是 329 个 `@deepseek-ai/dsh-*` 包、
+> 59 个 `packages/` 分组的完整产品（TypeScript + [Cordis](https://github.com/cordiverse/cordis) 驱动，
+> 官方描述就是 **"Everything is a Plugin"**）。
+>
+> 本项目做的是：**用最小代码把"为什么 harness 要长这样"讲明白**。
+> 哪部分是真实 DSH、哪部分是教学类比，逐条写在
+> **[docs/00_real_dsh_map.md](docs/00_real_dsh_map.md)** —— 请先读它。
 
 ---
 
-## 🗂️ 目录结构导航
+## 目录结构
 
 ```text
 deepseek-harness-study/
-├── README.md                          # 本项目全景说明
-├── package.json                       # 项目依赖与启动脚本
-├── tsconfig.json                      # TypeScript 编译配置
-├── .env.example                       # 环境变量模板（支持真实 API 或 Mock 模式）
+├── docs/
+│   ├── README.md                       # 📖 文档索引：按"可信度"和路线挑着读
+│   ├── 00_real_dsh_map.md              # ⭐ 真实 DSH 事实卡 + 勘误 + 包族对照（先读）
+│   ├── 01_deepseek_harness_architecture.md
+│   ├── 02_everything_is_a_plugin.md
+│   ├── 03_agent_runtime_and_react_loop.md
+│   ├── 04_router_worker_superagent.md  # 教学类比，非 DSH 官方拓扑
+│   ├── 05_session_and_event_sourcing.md
+│   ├── 06_fullstack_superagent_deep_dive.md   # 🔴 本项目 demo 解析（非 DSH）
+│   ├── 07_real_plugin_tree.md          # ⭐ 解剖你本机真实的插件树（profile/patch/会话日志）
+│   └── 08_real_bundle_tree.md          # ⭐ 真实组合包配置树（148 行，官方发行物）
 │
-├── docs/                              # 📚 深度架构与技术原理文档
-│   ├── 01_deepseek_harness_architecture.md # 核心架构总览与 Cordis 设计哲学
-│   ├── 02_everything_is_a_plugin.md        # 插件系统与服务注册机制
-│   ├── 03_agent_runtime_and_react_loop.md  # Agent 运行时与自愈型 ReAct 循环
-│   ├── 04_router_worker_superagent.md      # Super-Agent: Router-Worker 多智能体架构
-│   ├── 05_session_and_event_sourcing.md    # 状态持久化、会话分支与轨迹回放 (Replay)
-│   └── 06_fullstack_superagent_deep_dive.md # 全栈沙箱、Web推流与Super-Agent深度研学
+├── src/
+│   ├── core/
+│   │   ├── types.ts          # 全部契约：Tool / Model / Session / Loop / Policy
+│   │   ├── context.ts        # Cordis 风格容器（服务 DI + 事件总线 + 插件生命周期）
+│   │   ├── policy.ts         # ⭐ 工具准入策略引擎（allow / deny / ask，失败关闭）
+│   │   ├── registry.ts       # ⭐ 工具注册表：执行前强制裁决，拒绝则不调用
+│   │   ├── config.ts         # 极简配置 schema 校验（fail fast）
+│   │   ├── session.ts        # 事件溯源会话（不可变事件 / 回放 / 分叉）
+│   │   └── harness.ts        # 主引导：注入 session / policies / tools
+│   ├── plugins/
+│   │   ├── models/
+│   │   │   ├── deepseek-adapter.ts        # 真实 DeepSeek API + 剧本回放（明确标注）
+│   │   │   └── scripted-workspace-model.ts# 决策脚本化、效果真实（供示例 5）
+│   │   ├── tools/
+│   │   │   ├── file-tools.ts      # 内存虚拟文件系统
+│   │   │   ├── terminal-tools.ts  # 内存"伪终端"（在 vm 里真实执行 auth.js 逻辑）
+│   │   │   └── real-fs-tools.ts   # 真实磁盘 + 真实子进程
+│   │   ├── guardrails/sandbox-guard.ts    # 路径 jail + 命令白名单（裁决式）
+│   │   ├── loops/{react,router-worker,superagent}-loop.ts
+│   │   └── web/                  # 原生 HTTP + SSE 看板
+│   ├── web-entry.ts              # Web 控制台装配入口
+│   └── index.ts                  # CLI 装配入口
 │
-├── workspace/                         # 🔒 受控真实演练工作区 (带真实 Bug 与测试用例)
-│   ├── src/calculator.js              # 包含逻辑缺陷的业务代码
-│   ├── test.js                        # 自动化测试用例
-│   └── package.json
+├── examples/
+│   ├── 00_test_connection.ts     # .env / API 连通性诊断
+│   ├── 01_basic_agent.ts         # 基础 ReAct（内存沙箱 + 剧本模型）
+│   ├── 02_custom_plugin.ts       # ⭐ 自定义插件：策略拦截 + 事件遥测（带拦截验证）
+│   ├── 03_session_replay.ts      # 回放 / 分叉 / 导出
+│   ├── 04_router_worker_task.ts  # Router-Worker 教学原型
+│   └── 05_real_workspace_agent.ts# ⭐ 真实磁盘 + 真实 `node test.js`：真红 → 真修复 → 真绿
 │
-├── src/                               # 💻 核心架构源码（轻量高内聚微内核）
-│   ├── core/                          # 核心微内核引擎 (Context, Session, Harness)
-│   ├── plugins/                       # 标准插件库
-│   │   ├── models/                    # 模型适配插件 (Mock + DeepSeek API)
-│   │   ├── tools/                     # 工具注册插件 (真实磁盘/Shell + 模拟沙箱)
-│   │   ├── guardrails/                # 安全守卫中间件 (Workspace Jail 防穿越)
-│   │   ├── loops/                     # 执行循环策略插件 (ReAct + Router-Worker)
-│   │   └── web/                       # Web 原生 HTTP + SSE 推流仪表盘
-│   ├── web-entry.ts                   # Web 控制台一键装配入口
-│   └── index.ts                       # CLI 交互入口
-│
-├── examples/                          # 🚀 教学范例（可直接运行）
-│   ├── 01_basic_agent.ts              # 范例 1: 基础智能体完成单任务
-│   ├── 02_custom_plugin.ts            # 范例 2: 开发并热挂载自定义插件
-│   ├── 03_session_replay.ts           # 范例 3: 事件轨迹回放与状态审计
-│   └── 04_router_worker_task.ts       # 范例 4: Super-Agent 协同解决复杂编程任务
-│
-└── python_version/                    # 🐍 Python 对照版本
-    └── mini_dsh.py                    # 纯原生 Python 实现的轻量单文件对照版
+├── fixtures/real-dsh/            # 官方组合包配置原件（MIT，可复现）
+├── tests/run.ts                  # 15 个用例：策略语义 / 守卫回归 / 会话 / 熔断 / 端到端
+├── scripts/
+│   ├── reset-workspace.mjs       # 把 demo 工作区复位到"含 Bug 基线"
+│   ├── inspect-real-dsh.mjs      # ⭐ 只读探查本机真实安装（profile / patch / 会话格式）
+│   ├── fetch-real-bundles.mjs    # 拉取真实组合包配置到 fixtures/
+│   └── analyze-bundle-tree.mjs   # ⭐ 分析真实配置树（三种 patch 动作 / 领域分布）
+├── workspace/                    # 真实演练工作区
+│   ├── src/calculator.js         # 会被 Agent 真实修改
+│   ├── src/calculator.buggy.js   # 含 Bug 的基线（复位源）
+│   └── test.js                   # 真实断言（node 原生）
+└── python_version/mini_dsh.py    # Python 对照实现
 ```
 
 ---
 
-## ⚡ 快速上手
+## 快速上手
 
-### 1. 环境准备
-本项目基于现代 Node.js (推荐 v18+) 与 TypeScript 开发。
 ```bash
-cd deepseek-harness-study
-npm install
+npm install            # 或 pnpm install
+
+cp .env.example .env   # 可选：不填 Key 会自动进入"剧本回放"模式
+npm test               # 15 个用例，应当全绿
 ```
 
-### 2. 配置环境（可选）
-复制 `.env.example` 为 `.env`：
-```bash
-cp .env.example .env
-```
-> **提示**：本项目内置完善的 **Mock 模拟模式**。如果你手头暂时没有 `DEEPSEEK_API_KEY`，可以直接运行全部范例，内置模拟器会精确模拟 DeepSeek 模型的工具调用与思考推演流程！
+### 命令一览
 
-### 3. 运行教学示例
+| 命令 | 说明 |
+|---|---|
+| `npm test` | 测试套件（策略语义、守卫回归、会话、死循环熔断、端到端） |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run build` | 编译到 `dist/` |
+| `npm run reset` | 把 `workspace/src/calculator.js` 复位成含 Bug 的基线 |
+| `npm run inspect` | 只读探查你本机真实的 DSH 安装（`--patch` / `--sessions`） |
+| `npm run analyze` | 分析官方组合包配置树（148 行、三种 patch 动作、领域分布） |
+| `npm run fetch:real` | 重新拉取 `fixtures/real-dsh/` 里的官方配置快照 |
+| `npm run example:real` | **推荐**：真实磁盘 + 真实子进程的完整闭环 |
+| `npm run example:basic` | 基础 ReAct（内存沙箱） |
+| `npm run example:plugin` | 自定义插件：策略拦截演示（会验证拦截真的生效） |
+| `npm run example:replay` | 会话回放 / 分叉 / 导出 |
+| `npm run example:router-worker` | Router-Worker 教学原型 |
+| `npm run web` | Web 看板（默认 <http://localhost:3000>） |
+| `npm run start` | CLI 入口 |
+| `python3 python_version/mini_dsh.py` | Python 对照版 |
 
-- **启动 Web 实时可视化控制台 (强烈推荐)**：
-  ```bash
-  npm run web
-  ```
-  在浏览器访问 `http://localhost:3000`，体验实时思考推流、多角色协同与沙箱代码实时自愈！
-
-- **运行命令行 Super-Agent 多角色协同任务**：
-  ```bash
-  npm run superagent
-  ```
-- **运行基础 ReAct Agent 任务**：
-  ```bash
-  npm run example:basic
-  ```
-- **体验自定义插件扩展 (防篡改守卫)**：
-  ```bash
-  npm run example:plugin
-  ```
-- **体验会话轨迹回放 (Replay)**：
-  ```bash
-  npm run example:replay
-  ```
-- **体验 Python 单文件对照版**：
-  ```bash
-  python3 python_version/mini_dsh.py
-  ```
+> Web 看板里的协同演示需要工作区**存在 Bug**。如果它提示"测试一开始就是绿的"，
+> 先跑 `npm run reset`。
 
 ---
 
-## 📖 推荐学习顺序
+## 两种模式：别搞混
 
-1. **第 1 步：阅读文档 [`docs/01_deepseek_harness_architecture.md`](docs/01_deepseek_harness_architecture.md)**
-   掌握 DeepSeek Harness 的背景、为什么需要 Harness，以及 Cordis 微内核的运行机理。
-2. **第 2 步：查看代码 [`src/core/types.ts`](src/core/types.ts) 和 [`src/core/context.ts`](src/core/context.ts)**
-   理解服务上下文是如何实现插件加载、依赖注入和事件监听的。
-3. **第 3 步：运行 [`examples/01_basic_agent.ts`](examples/01_basic_agent.ts)**
-   观察一个编程任务是如何通过“模型推理 -> 触发 Tool Call -> 沙箱执行 -> 观测结果 -> 自主排错”完成的。
-4. **第 4 步：深入 [`docs/04_router_worker_superagent.md`](docs/04_router_worker_superagent.md) 与 [`examples/04_router_worker_task.ts`](examples/04_router_worker_task.ts)**
-   理解 DeepSeek Super-Agent 原型如何将大任务拆分，由 Router 协调 Explorer、Coder、Reviewer 协同工作。
+| 模式 | 命令 | 模型 | 工具 | 测试结果来自 |
+|---|---|---|---|---|
+| 剧本回放 | `EXECUTION_MODE=mock` | 写死的 5 回合（输出带 `[SCRIPTED]`） | 内存虚拟文件系统 | `node:vm` 里真实执行 `verifyToken` |
+| 真实模型 | `EXECUTION_MODE=live` + Key | 真 DeepSeek API | 内存虚拟文件系统 | 同上 |
+| 真实工作区 | `npm run example:real` | 决策脚本（`[SCRIPTED]`） | 真实磁盘 + 真实子进程 | 真实 `node test.js` 退出码 |
 
+**为什么保留"剧本模型"？** 它让你在没有 Key 的情况下也能把"循环 + 工具 + 策略 + 事件"这条
+工程链路跑通。但它不是模型能力，所以所有输出都打了 `[SCRIPTED]`。
+想观察真实行为差异，看示例 5 或切到 live。
+
+---
+
+## 一个值得记住的教训：拦截不能用 `throw`
+
+早期版本的沙箱守卫是这样写的：
+
+```ts
+ctx.on('tool:before_call', () => { throw new Error('Access denied') }) // ❌ 看起来对，实际全线失效
+```
+
+但 `emit` 为了避免一个监听器拖垮整条链路，会**吞掉**异常。结果实测：
+
+```
+../escape-proof.txt  → 成功写到工作区外
+rm -rf /             → 真的进了 shell
+```
+
+修复方式是把它变成**裁决管线**（真实 DSH 的 `dsh-tools` / `dsh-sandbox` 同样如此）：
+
+```ts
+ctx.get('policies').use({ name: 'sandbox/path-jail', check: (call) => ({ decision: 'deny', reason: '...' }) })
+```
+
+`ToolRegistry.execute` 会在调用工具**之前**跑裁决：`deny` 直接返回失败结果，工具根本不会被执行。
+`ask` 在没有审批器时**失败关闭**（绝不放行）。
+
+这条教训现在有回归测试守护（`tests/run.ts` 第 3 组）。
+
+---
+
+## 推荐学习顺序
+
+0. **[docs/README.md](docs/README.md)** —— 文档索引（按可信度与学习路线挑）
+1. **[docs/00_real_dsh_map.md](docs/00_real_dsh_map.md)** —— 先建立"哪些是真的、哪些是类比"的坐标系
+2. [docs/01](docs/01_deepseek_harness_architecture.md) → [docs/02](docs/02_everything_is_a_plugin.md)：架构总览与插件/服务
+3. 读 `src/core/context.ts` + `src/core/registry.ts` + `src/core/policy.ts`：**上下文、注册表、策略**这三件套
+4. 跑 `npm run example:real`：看一次"真红 → 真修复 → 真绿"的闭环
+5. [docs/03](docs/03_agent_runtime_and_react_loop.md) + `src/plugins/loops/react-loop.ts`：循环、自愈、熔断
+6. [docs/05](docs/05_session_and_event_sourcing.md) + `npm run example:replay`：事件溯源与回放/分叉
+7. [docs/04](docs/04_router_worker_superagent.md)：多角色协作（记得它是类比）
+8. 最后读 [docs/06](docs/06_fullstack_superagent_deep_dive.md) 与 `src/plugins/web/`：全栈与 SSE 推流
+9. 想啃真实源码：**[docs/07](docs/07_real_plugin_tree.md)** + `npm run inspect` —— 用你自己机器上的 profile/patch/会话日志对照
+10. 想看真实配置树：**[docs/08](docs/08_real_bundle_tree.md)** + `npm run analyze` —— 148 行官方配置，三种 patch 动作与权限三档
+
+---
+
+## 本项目不做什么（诚实边界）
+
+- ❌ **没有真实进程隔离**：路径 jail 只挡越界路径，挡不住 `node -e "...恶意逻辑..."`。真隔离需要容器 / microVM，
+  或直接用 DSH 的 `dsh-sandbox`（`read-only` / `workspace-write` / `danger-full-access` 三档 + 失败关闭）
+- ❌ 没有 token 计量与成本控制（真实：`dsh-token-meter`）
+- ❌ 没有上下文压缩（真实：`dsh-compaction`）
+- ❌ 没有会话持久化（真实：`dsh-session-persistence-jsonl` + 格式 `v0→v4` 迁移链）
+- ❌ 没有真正的子 agent（真实：`dsh-subagent` 的 spawn/fork + 跨 ACP/SDK/Codex/ClaudeCode 后端）
+- ❌ 没有 profile / bundle / patch 分层装配（真实：`dsh --profile web --dump-config` 可导出本机真实插件树）
+
+---
+
+## 安全提示
+
+`.env` 现在已被 `.gitignore` 忽略，并从 git 索引中移除。
+**如果你之前已经把含真实 Key 的提交推送到过远端，请立刻去服务商轮换该 Key。**

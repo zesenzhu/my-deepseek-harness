@@ -1,5 +1,10 @@
 # 02. 一切皆插件（Everything is a Plugin）
 
+🟢 **本篇可信度：事实** —— 核心判断与真实 DSH 一致（官方描述即 "Everything is a Plugin"，底层为 Cordis）。
+
+> ✅ 这一篇的核心判断是**准确**的：DSH 的官方描述就是 "Everything is a Plugin"，底层确实是 Cordis。
+> 但下面的"五类插件"是本项目的教学归纳，真实 DSH 按领域拆成了 329 个包、59 个分组。
+
 ## 1. Cordis 微内核架构哲学
 
 DeepSeek Harness 的技术底层构建在 **Cordis** 之上。
@@ -40,7 +45,9 @@ export function MyPlugin(ctx: Context, options: MyPluginOptions) {
 
 ## 3. DeepSeek Harness 中的插件分类
 
-在 DSH 中，官方将插件清晰地划分为五大层级：
+为了便于入门，下面按职责把插件归成五类。**注意：这是教学归纳，不是 DSH 的官方分类。**
+真实 DSH 的划分粒度细得多（`packages/` 下 59 个分组），例如 `core/session`、`core/tools`、`core/agent-loop`、`llm/llm`、
+`sandbox`、`compaction`、`subagent`、`session-format` 各自独立成包。
 
 | 插件类别 | 职责说明 | 典型实现 / 接口 |
 | :--- | :--- | :--- |
@@ -64,24 +71,39 @@ export interface AuditConfig {
 }
 
 export const CodeAuditPlugin: Plugin<AuditConfig> = (ctx: Context, config) => {
-  // 拦截工具执行前事件
-  ctx.on('tool:before_call', async (call) => {
-    if (call.name === 'write_file') {
-      const content = call.args.content as string;
-      if (content && content.length > config.maxFileSize) {
-        throw new Error(
-          `[Security Audit] File edit rejected: content length ${content.length} exceeds limit ${config.maxFileSize}`
-        );
+  // ✅ 必须生效的准入控制 → 注册策略（deny 时工具根本不会被执行）
+  const disposePolicy = ctx.get('policies').use({
+    name: 'audit/max-file-size',
+    check(call) {
+      if (call.name !== 'file_write') return { decision: 'allow' };
+      const content = String(call.args.content ?? '');
+      if (content.length > config.maxFileSize) {
+        return {
+          decision: 'deny',
+          reason: `内容长度 ${content.length} 超过上限 ${config.maxFileSize}`,
+          code: 'PROTECTED_PATH',
+        };
       }
-    }
+      return { decision: 'allow' };
+    },
   });
 
-  // 在 Agent 任务结束时打印统计报告
-  ctx.on('agent:finished', (trajectory) => {
-    console.log(`[Audit Plugin] Task finished with ${trajectory.length} steps.`);
+  // ✅ 纯观察的日志/遥测 → 用事件
+  const disposeEvent = ctx.on('agent:finished', (payload) => {
+    console.log(`[Audit Plugin] Task finished: ${payload.result}`);
   });
+
+  return () => {
+    disposePolicy();
+    disposeEvent();
+  };
 };
 ```
 
 通过这种架构，你可以在完全不侵入主逻辑的前提下，任意扩展 Agent 的能力与审计控制！
+
+> ⚠️ **最容易踩的坑**：不要用 `ctx.on('tool:before_call', () => { throw ... })` 来做拦截。
+> 事件派发是"通知"语义，`emit` 为了避免一个监听器拖垮整条链路会吞掉异常——
+> 结果就是守卫只打了一行日志，工具照常执行。这是本项目早期真实存在的 Bug，
+> 现在由 `src/core/policy.ts` 的裁决管线保证拦截生效。详见 [00_real_dsh_map.md](00_real_dsh_map.md) 第 2 节。
 

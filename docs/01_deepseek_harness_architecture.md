@@ -1,5 +1,10 @@
 # 01. DeepSeek Harness 架构全景与核心概念
 
+🟡 **本篇可信度：类比为主** —— 本篇讲通用架构概念，方法名与真实 DSH 基本一致；但 Router-Worker 等归类是本项目自建的类比。
+
+> ⚠️ **先读 [00_real_dsh_map.md](00_real_dsh_map.md)**。本篇是"概念地图"，其中部分类比（如 Router-Worker）
+> **不是 DSH 的真实组件**，必须先分清哪些是真实架构、哪些是本项目的教学建模。
+
 ## 1. 什么是 DeepSeek Harness (dsh)？
 
 **DeepSeek Harness (简称 dsh)** 是 DeepSeek AI 官方开源的自主智能体（Autonomous Agent）运行时与实验控制框架。
@@ -67,10 +72,34 @@ Harness 会自主拆解任务、通过文件工具读取代码、利用终端工
 DSH 的整个会话生命周期是一个**不可变追加事件流（Append-Only Event Log）**。
 每一个用户指令、模型思考（Thought）、工具调用参数（Tool Call）、环境观察（Observation）都被记录为独立事件。这赋予了系统强大的调试、会话分支（Branching）和回放（Replay）能力。
 
-### 3.3 Super-Agent 原型
-在处理超大规模复杂任务时，单一 Agent 会因上下文窗口爆炸而失焦。DeepSeek Harness 提出了 **Router-Worker** 原型：
-- **Router Agent**：负责需求理解、任务拆解与全局调度，不亲自做脏活；
-- **Explorer Worker**：快速扫读代码库，构建依赖拓扑与索引；
-- **Coder Worker**：针对具体子模块编写修改代码；
-- **Tester Worker**：在沙箱中运行测试并反馈错误信息。
+### 3.3 多 Agent 协作（教学类比：Router-Worker）
+
+> 📌 **勘误**：DSH 里**没有** "Router-Worker" 这个拓扑，也没有 `dsh-superagent-prototype` 这个包
+> （在发行版产物里搜索 `router-worker` / `super-agent` 命中数为 0）。
+> 下面是本项目为讲解"角色分工 + 反馈闭环"而自建的类比模型。
+
+- **Router Agent**：负责任务拆解与全局调度（对应我们 demo 里的 `router-worker-loop`）
+- **Explorer Worker**：只读勘测、代码定位
+- **Coder Worker**：编写修改
+- **Tester Worker**：跑测试并回传真实结果
+
+真实 DSH 中相近的能力由这些包提供：
+
+| 真实包 | 能力 |
+|---|---|
+| `@deepseek-ai/dsh-subagent` | 子 agent 委派：本地 spawn/fork 保留持久会话；ACP / DSH SDK / Codex / Claude Code 为一次性执行 |
+| `@deepseek-ai/dsh-tool-subagent` | 让模型把子 agent 当工具调用 |
+| `@deepseek-ai/dsh-workflow` / `-ptc` | 脚本化多 agent 编排 |
+| `@deepseek-ai/dsh-experimental-agent-team` | 团队式协作（实验性） |
+
+### 3.4 本篇没提到、但真实 DSH 很关键的部分
+
+- **profile / bundle / patch 分层装配**：`web` / `headless` / `sdk` / `sdk-minimal` / `acp` 五种 profile，`dsh-base` 是第一层组合包，`cordis.patch.yml` 按 id 打补丁
+- **工具策略**：`dsh-tools` 的 allow / deny / ask 三态
+- **进程沙箱**：`dsh-sandbox` 的 `read-only` / `workspace-write` / `danger-full-access`，无法强制则失败关闭
+- **上下文压缩**：`dsh-compaction`（被遮蔽内容仍留在日志中，保证回放一致）
+- **会话格式版本化**：`dsh-session-format` 带 `v0→v4` 迁移链
+- **审批、后台作业、输出溢写、技能**：`dsh-user-approval` / `dsh-jobs` / `dsh-spill` / `dsh-skill`
+
+详见 [00_real_dsh_map.md](00_real_dsh_map.md)。
 

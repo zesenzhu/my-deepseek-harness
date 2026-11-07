@@ -1,5 +1,12 @@
 # 03. Agent 运行时与自愈型 ReAct 循环
 
+🟡 **本篇可信度：类比为主** —— ReAct 是通用范式而非 DSH 组件；真实对应物是 dsh-agent-loop / dsh-repeat-tool-reminder。
+
+> 📌 **术语澄清**：ReAct 是通用 Agent 范式（Yao et al., 2022），**不是 DSH 的组件**。
+> 在发行版产物里搜索 `ReAct` 命中 0 次；DSH 中执行同一职责的包叫 `@deepseek-ai/dsh-agent-loop`，
+> 它负责"模型请求 → 流式响应 → 工具执行 → 会话持久化"，并把"取消、并发、工具日志"交给执行器。
+> 本篇讲的是**这一类循环的共同结构**，本项目按它实现了一份最小版。
+
 ## 1. 传统 ReAct 与 DeepSeek Harness 运行时对比
 
 传统的 ReAct（Reasoning + Acting）模式由 Yao 等人在 2022 年提出，其核心公式为：
@@ -61,9 +68,16 @@
 
 ## 3. 熔断与终止条件（Termination Guards）
 
-为了避免无限循环消耗 Token，DSH 引入了多重终止卫士：
-1. **Max Steps Guard**：单次任务的最大步数限制（例如 20 步）。
-2. **Repetition Guard**：检测模型是否连续发出完全相同的 Tool Call 参数（死锁检测）。
-3. **Budget/Token Guard**：累计消耗的 Token 数量或费用上限。
-4. **Explicit Finish**：模型显式输出结束指令并提交最终交付物。
+为了避免无限循环消耗 Token，需要多重终止卫士。真实 DSH 里对应的是这些包：
+
+| 卫士 | 真实包 | 行为 |
+|---|---|---|
+| 重复调用 | `dsh-repeat-tool-reminder` | **先提醒模型换策略**，而不是立刻杀掉 |
+| 超时 | `dsh-timeout` / `dsh-tool-call-timeout-policy` | 单次工具调用超时 |
+| Token 计量 | `dsh-token-meter` | 统计与限额 |
+| 输出过大 | `dsh-spill` / `-policy` | 大输出溢写到文件，避免撑爆上下文 |
+| 显式结束 | `dsh-agent-loop` | 模型不再发起工具调用即视为结束 |
+
+本项目的 `ReActLoopPlugin` 实现了其中两件：**渐进式重复提醒 + 熔断**（默认连续 3 次相同调用才中断，
+第 2 次先注入 `[Harness Reminder]` 提醒模型换策略）和**最大步数**。
 
